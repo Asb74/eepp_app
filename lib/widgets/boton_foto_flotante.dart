@@ -1,0 +1,143 @@
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:http/http.dart' as http;
+import 'package:harvestsync/usuario_actual.dart' as usuario;
+import 'package:harvestsync/util/conexion_util.dart';
+import 'package:harvestsync/services/foto_local_service.dart';
+
+class BotonFotoFlotante extends StatelessWidget {
+  final String? idMuestra;
+  final String pantalla;
+  final String cultivo;
+
+  const BotonFotoFlotante({
+    super.key,
+    required this.idMuestra,
+    required this.pantalla,
+    required this.cultivo,
+  });
+
+  Future<void> _tomarYGuardarFoto(BuildContext context) async {
+    if (idMuestra == null || idMuestra!.isEmpty || cultivo.isEmpty) return;
+
+    try {
+      final picker = ImagePicker();
+      final imagen = await picker.pickImage(source: ImageSource.camera, imageQuality: 85);
+      if (imagen == null) return;
+
+      // 🔌 Verificar conectividad
+      final conectado = await hayConexion();
+      if (!conectado) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('📷 Sin conexión. Guardando foto localmente...')),
+          );
+        }
+
+        // 🔽 Importar la función
+        // Asegúrate de tener esta línea al inicio del archivo:
+        // import 'package:harvestsync/services/foto_local_service.dart';
+
+        final file = File(imagen.path);
+
+        final muestraDoc = await FirebaseFirestore.instance
+            .collection('Muestras')
+            .doc(idMuestra)
+            .get();
+        final data = muestraDoc.data() ?? {};
+        final boleta = data['Boleta'] ?? '';
+
+        final nombrePlantilla = 'Plantillas$pantalla';
+        final docPlantilla = await FirebaseFirestore.instance
+            .collection(nombrePlantilla)
+            .doc(cultivo)
+            .get();
+        final tituloPantalla = docPlantilla.data()?['Titulo'] ?? pantalla;
+
+        await guardarFotoLocal(
+          imagen: file,
+          idMuestra: idMuestra!,
+          pantalla: tituloPantalla,
+          boleta: boleta,
+          rutaDestino: usuario.rutaServidor,
+        );
+
+        return;
+      }
+
+
+
+      final urlDoc = await FirebaseFirestore.instance
+          .collection('ServidorFotos')
+          .doc('url_actual')
+          .get();
+      final urlServidor = urlDoc.data()?['url'];
+      if (urlServidor == null || urlServidor.isEmpty) {
+        throw 'No se pudo obtener la URL del servidor.';
+      }
+
+      final muestraDoc = await FirebaseFirestore.instance
+          .collection('Muestras')
+          .doc(idMuestra)
+          .get();
+      final data = muestraDoc.data() ?? {};
+      final boleta = data['Boleta'] ?? '';
+
+      final nombrePlantilla = 'Plantillas$pantalla';
+      final docPlantilla = await FirebaseFirestore.instance
+          .collection(nombrePlantilla)
+          .doc(cultivo)
+          .get();
+      final tituloPantalla = docPlantilla.data()?['Titulo'] ?? pantalla;
+
+      final uri = Uri.parse('$urlServidor/upload');
+      final request = http.MultipartRequest('POST', uri)
+        ..fields['idMuestra'] = idMuestra!
+        ..fields['pantalla'] = tituloPantalla
+        ..fields['boleta'] = boleta
+        ..fields['rutaDestino'] = usuario.rutaServidor; // 💡 Aquí se pasa la ruta
+
+      final file = File(imagen.path);
+      request.files.add(await http.MultipartFile.fromPath('file', file.path));
+
+      final response = await request.send();
+
+      if (response.statusCode == 200) {
+        final responseBody = await response.stream.bytesToString();
+        final nombreArchivo = RegExp(r'"archivo"\s*:\s*"([^"]+)"')
+            .firstMatch(responseBody)
+            ?.group(1);
+
+        if (nombreArchivo != null && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('📸 Foto enviada correctamente: $nombreArchivo')),
+          );
+        }
+      } else {
+        throw 'Error al subir la foto (código ${response.statusCode})';
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('❌ Error: $e')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (idMuestra == null || idMuestra!.isEmpty || cultivo.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return FloatingActionButton(
+      heroTag: 'foto_$pantalla',
+      onPressed: () => _tomarYGuardarFoto(context),
+      tooltip: 'Tomar foto',
+      child: const Icon(Icons.camera_alt),
+    );
+  }
+}
