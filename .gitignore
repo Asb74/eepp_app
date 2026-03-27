@@ -1,45 +1,164 @@
-# Miscellaneous
-*.class
+# ===============================
+
+# GENERAL
+
+# ===============================
+
 *.log
-*.pyc
+*.tmp
+*.bak
 *.swp
+*.swo
+*.lock
+
 .DS_Store
-.atom/
-.build/
-.buildlog/
-.history
-.svn/
-.swiftpm/
-migrate_working_dir/
+Thumbs.db
 
-# IntelliJ related
-*.iml
-*.ipr
-*.iws
-.idea/
+# ===============================
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+# PYTHON
 
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
+# ===============================
+
+**pycache**/
+*.py[cod]
+*.pyo
+*.pyd
+
+.env
+.venv/
+venv/
+env/
+ENV/
+
+# ===============================
+
+# FLUTTER / DART
+
+# ===============================
+
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
-.pub-cache/
+.packages
 .pub/
+.pub-cache/
 /build/
 
-# Symbolication related
-app.*.symbols
+# Generated
 
-# Obfuscation related
-app.*.map.json
+**/doc/api/
+**/ios/Flutter/.last_build_id
 
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
+# ===============================
+
+# ANDROID
+
+# ===============================
+
+/android/.gradle/
+/android/app/build/
+/android/build/
+/android/app/debug/
+/android/app/profile/
+/android/app/release/
+
+# Keystore (CRÍTICO)
+
+*.jks
+*.keystore
+key.properties
+
+# ===============================
+
+# IOS
+
+# ===============================
+
+/ios/Pods/
+/ios/.symlinks/
+/ios/Flutter/Flutter.framework
+/ios/Flutter/App.framework
+/ios/Flutter/Generated.xcconfig
+/ios/Flutter/flutter_export_environment.sh
+
+# ===============================
+
+# IDEs
+
+# ===============================
+
+.idea/
+*.iml
+*.ipr
+*.iws
+
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json
+
+# ===============================
+
+# JSON (CONTROL FINO)
+
+# ===============================
+
+# Ignorar TODOS los JSON por defecto
+
+*.json
+
+# EXCEPCIONES (estos SÍ se suben)
+
+!firebase.json
+!firestore.rules
+!firestore.indexes.json
+
+# (Opcional según repo privado/público)
+
+!google-services.json
+!GoogleService-Info.plist
+
+# ===============================
+
+# BACKEND / SERVIDOR (TU CASO)
+
+# ===============================
+
+# Claves y secretos
+
+TailscaleKey.txt
+*.pem
+*.key
+*.crt
+secrets.json
+credentials.json
+
+# Archivos generados servidor
+
+/uploads/
+/temp/
+/cache/
+
+# ===============================
+
+# LOGS Y TEST
+
+# ===============================
+
+*.txt
+!README.md
+
+# ===============================
+
+# HISTÓRICO / OTROS
+
+# ===============================
+
+.history/
+.svn/
+.atom/
+.build/
+.buildlog/
+.swiftpm/
+migrate_working_dir/
