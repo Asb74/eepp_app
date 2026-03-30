@@ -102,16 +102,12 @@ class InformeGenerator {
       contenido.add(_crearGrafica(filas));
     }
 
-    // Obtener imágenes desde el servidor según rutaServidor
+    // Obtener imágenes desde el servidor
     final fotos = await _obtenerFotosPorSeccion(idMuestra, tituloSeccion);
     final imagenes = <pw.Widget>[];
-    final rutaServidor = serverConfig.rutaServidor.isNotEmpty
-        ? serverConfig.rutaServidor
-        : usuario.rutaServidor;
-    final carpeta = Uri.encodeComponent(rutaServidor);
 
     for (final ruta in fotos) {
-      final urlCompleta = '$baseUrl/fotos/$ruta?carpeta=$carpeta';
+      final urlCompleta = '$baseUrl/fotos/$ruta';
       try {
         final response = await http.get(
           Uri.parse(urlCompleta),
