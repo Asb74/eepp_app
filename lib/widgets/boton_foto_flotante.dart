@@ -1,14 +1,15 @@
 import 'dart:io';
-import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:harvestsync/usuario_actual.dart' as usuario;
-import 'package:harvestsync/util/conexion_util.dart';
-import 'package:harvestsync/services/foto_local_service.dart';
-import 'package:harvestsync/services/server_config_service.dart';
+import 'package:image_picker/image_picker.dart';
+
 import 'package:harvestsync/services/connectivity_service.dart';
+import 'package:harvestsync/services/foto_local_service.dart';
 import 'package:harvestsync/services/offline_write_service.dart';
+import 'package:harvestsync/services/server_config_service.dart';
+import 'package:harvestsync/usuario_actual.dart' as usuario;
 
 class BotonFotoFlotante extends StatelessWidget {
   final String? idMuestra;
@@ -25,120 +26,103 @@ class BotonFotoFlotante extends StatelessWidget {
   Future<void> _tomarYGuardarFoto(BuildContext context) async {
     if (idMuestra == null || idMuestra!.isEmpty || cultivo.isEmpty) return;
 
+    final picker = ImagePicker();
+    final imagen = await picker.pickImage(source: ImageSource.camera, imageQuality: 85);
+    if (imagen == null) return;
+
+    final file = File(imagen.path);
+
     try {
-      final picker = ImagePicker();
-      final imagen = await picker.pickImage(source: ImageSource.camera, imageQuality: 85);
-      if (imagen == null) return;
-
-      // 🔌 Verificar conectividad
-      final conectado = await hayConexion();
-      if (!conectado) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('📷 Sin conexión. Guardando foto localmente...')),
-          );
-        }
-
-        // 🔽 Importar la función
-        // Asegúrate de tener esta línea al inicio del archivo:
-        // import 'package:harvestsync/services/foto_local_service.dart';
-
-        final file = File(imagen.path);
-
-        final muestraDoc = await FirebaseFirestore.instance
-            .collection('Muestras')
-            .doc(idMuestra)
-            .get();
-        final data = muestraDoc.data() ?? {};
-        final boleta = data['Boleta'] ?? '';
-
-        final nombrePlantilla = 'Plantillas$pantalla';
-        final docPlantilla = await FirebaseFirestore.instance
-            .collection(nombrePlantilla)
-            .doc(cultivo)
-            .get();
-        final tituloPantalla = docPlantilla.data()?['Titulo'] ?? pantalla;
-
-        await guardarFotoLocal(
-          imagen: file,
-          idMuestra: idMuestra!,
-          pantalla: tituloPantalla,
-          boleta: boleta,
-          rutaDestino: usuario.rutaServidor,
-        );
-
-        return;
-      }
-      final serverConfig = await getServerConfig();
-
       final muestraDoc = await FirebaseFirestore.instance
           .collection('Muestras')
           .doc(idMuestra)
           .get();
-      final data = muestraDoc.data() ?? {};
-      final boleta = data['Boleta'] ?? '';
+      final data = muestraDoc.data() ?? <String, dynamic>{};
+      final boleta = data['Boleta']?.toString() ?? '';
 
       final nombrePlantilla = 'Plantillas$pantalla';
       final docPlantilla = await FirebaseFirestore.instance
           .collection(nombrePlantilla)
           .doc(cultivo)
           .get();
-      final tituloPantalla = docPlantilla.data()?['Titulo'] ?? pantalla;
+      final tituloPantalla = docPlantilla.data()?['Titulo']?.toString() ?? pantalla;
 
-      final nombre = "${idMuestra!}_${tituloPantalla}_${DateTime.now().millisecondsSinceEpoch}.jpg";
+      final nombreArchivo =
+          '${idMuestra!}_${limpiarNombre(tituloPantalla)}_${DateTime.now().millisecondsSinceEpoch}.jpg';
 
+      if (ConnectivityService.instance.currentStatus != ConnectionStatus.online) {
+        await guardarFotoLocal(
+          imagen: file,
+          idMuestra: idMuestra!,
+          pantalla: tituloPantalla,
+          boleta: boleta,
+          rutaDestino: usuario.rutaServidor,
+          filename: nombreArchivo,
+        );
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Guardado en local')),
+          );
+        }
+        return;
+      }
+
+      final serverConfig = await getServerConfig();
       final uri = Uri.parse('${serverConfig.url}/upload');
+
       final request = http.MultipartRequest('POST', uri)
         ..headers['X-API-KEY'] = serverConfig.apiKey
         ..fields['idMuestra'] = idMuestra!
         ..fields['pantalla'] = tituloPantalla
         ..fields['boleta'] = boleta
-        ..fields['rutaDestino'] = serverConfig.rutaServidor.isNotEmpty
-            ? serverConfig.rutaServidor
-            : usuario.rutaServidor; // 💡 Aquí se pasa la ruta
-
-      final file = File(imagen.path);
-      request.files.add(await http.MultipartFile.fromPath(
-        'file',
-        file.path,
-        filename: nombre,
-      ));
+        ..fields['rutaDestino'] =
+            serverConfig.rutaServidor.isNotEmpty ? serverConfig.rutaServidor : usuario.rutaServidor
+        ..files.add(await http.MultipartFile.fromPath(
+          'file',
+          file.path,
+          filename: nombreArchivo,
+        ));
 
       final response = await request.send();
 
       if (response.statusCode == 200) {
-        final fotoData = {
-          'ruta_local': nombre,
-          'idMuestra': idMuestra!,
-          'pantalla': tituloPantalla,
-          'boleta': boleta,
-          'timestamp': Timestamp.now(),
-        };
-        final canUseServer = ConnectivityService.instance.canReachServer;
-        if (canUseServer) {
-          await FirebaseFirestore.instance.collection('Fotos').add(fotoData);
-        } else {
-          await OfflineWriteService.guardarLocalmente(
-            collection: 'Fotos',
-            data: fotoData,
-          );
-        }
+        await OfflineWriteService.addFirestoreOrQueue(
+          collection: 'Fotos',
+          payload: <String, dynamic>{
+            'ruta_local': nombreArchivo,
+            'idMuestra': idMuestra!,
+            'pantalla': tituloPantalla,
+            'boleta': boleta,
+            'timestamp': Timestamp.now(),
+          },
+        );
 
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('📸 Foto enviada correctamente: $nombre')),
+            SnackBar(content: Text('📸 Foto enviada correctamente: $nombreArchivo')),
           );
         }
       } else {
-        throw 'Error al subir la foto (código ${response.statusCode})';
+        await guardarFotoLocal(
+          imagen: file,
+          idMuestra: idMuestra!,
+          pantalla: tituloPantalla,
+          boleta: boleta,
+          rutaDestino: usuario.rutaServidor,
+          filename: nombreArchivo,
+        );
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Guardado en local')),
+          );
+        }
       }
-    } catch (e) {
-      if (!ConnectivityService.instance.canReachServer) {
-        return;
-      }
+    } catch (_) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ Error: $e')),
+          const SnackBar(content: Text('Guardado en local')),
         );
       }
     }

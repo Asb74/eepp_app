@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:harvestsync/widgets/app_bar_actions.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:pdfrx/pdfrx.dart';
@@ -108,6 +109,7 @@ class _InformeViewerPageState extends State<InformeViewerPage> {
       appBar: AppBar(
         title: const Text('Informe de Muestra'),
         actions: [
+          ...kConnectionStatusActions,
           IconButton(
             icon: const Icon(Icons.cloud_upload),
             tooltip: 'Subir al servidor',

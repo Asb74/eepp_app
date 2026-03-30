@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:harvestsync/widgets/app_bar_actions.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'detalle_muestra_page.dart';
 
@@ -101,7 +102,7 @@ class _BuscarMuestraPageState extends State<BuscarMuestraPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Buscar Muestra')),
+      appBar: AppBar(title: const Text('Buscar Muestra'), actions: kConnectionStatusActions),
       body: Padding(
         padding: const EdgeInsets.all(12.0),
         child: Column(

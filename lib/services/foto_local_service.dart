@@ -1,13 +1,30 @@
-import 'dart:convert';
 import 'dart:io';
+
+import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import 'sync_queue_service.dart';
+
 String limpiarNombre(String input) {
-  final caracteresInvalidos = ['<', '>', ':', '"', '/', '\\', '|', '?', '*', '\'', '`'];
-  for (var c in caracteresInvalidos) {
+  const caracteresInvalidos = <String>[
+    '<',
+    '>',
+    ':',
+    '"',
+    '/',
+    '\\',
+    '|',
+    '?',
+    '*',
+    '\'',
+    '`',
+  ];
+
+  for (final c in caracteresInvalidos) {
     input = input.replaceAll(c, '_');
   }
-  return input;
+
+  return input.replaceAll(RegExp(r'\s+'), '_');
 }
 
 Future<void> guardarFotoLocal({
@@ -16,31 +33,24 @@ Future<void> guardarFotoLocal({
   required String pantalla,
   required String boleta,
   required String rutaDestino,
+  required String filename,
 }) async {
   final dir = await getApplicationDocumentsDirectory();
   final subdir = Directory('${dir.path}/fotos_pendientes');
-  if (!await subdir.exists()) await subdir.create();
+  if (!await subdir.exists()) await subdir.create(recursive: true);
 
-  final timestamp = DateTime.now().millisecondsSinceEpoch;
-  final nombreBase = '$timestamp';
-
-  final pantallaSegura = limpiarNombre(pantalla);
-  final boletaSegura = limpiarNombre(boleta);
-  final rutaDestinoSegura = limpiarNombre(rutaDestino);
-
-  final rutaImagen = '${subdir.path}/$nombreBase.jpg';
-  final rutaMetadata = '${subdir.path}/$nombreBase.json';
+  final localFilename = limpiarNombre(filename);
+  final rutaImagen = p.join(subdir.path, localFilename);
 
   await imagen.copy(rutaImagen);
 
-  final metadata = {
-    'ruta': rutaImagen,
+  await SyncQueueService.instance.add(<String, dynamic>{
+    'type': 'upload_foto',
+    'localPath': rutaImagen,
     'idMuestra': idMuestra,
-    'pantalla': pantallaSegura,
-    'boleta': boletaSegura,
-    'rutaDestino': rutaDestinoSegura,
-  };
-
-  final archivoMeta = File(rutaMetadata);
-  await archivoMeta.writeAsString(jsonEncode(metadata));
+    'pantalla': limpiarNombre(pantalla),
+    'boleta': limpiarNombre(boleta),
+    'rutaDestino': limpiarNombre(rutaDestino),
+    'filename': localFilename,
+  });
 }

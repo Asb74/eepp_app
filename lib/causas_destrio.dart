@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:harvestsync/widgets/app_bar_actions.dart';
 import 'package:harvestsync/widgets/boton_foto_flotante.dart';
 import 'package:harvestsync/widgets/boton_informe_flotante.dart';
 import 'package:harvestsync/services/connectivity_service.dart';
@@ -177,6 +178,7 @@ class _CausasDestrioPageState extends State<CausasDestrioPage> {
       appBar: AppBar(
         title: const Text('Causas Industria'),
         centerTitle: true,
+        actions: kConnectionStatusActions,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
