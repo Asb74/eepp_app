@@ -27,6 +27,7 @@ class FotoSyncService {
     if (!await imageFile.exists()) {
       return true;
     }
+    print('📤 Subiendo foto offline: $filename');
 
     final serverConfig = await getServerConfig();
     final uri = Uri.parse('${serverConfig.url}/upload');

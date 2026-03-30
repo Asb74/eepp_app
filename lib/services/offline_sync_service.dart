@@ -39,11 +39,12 @@ class OfflineSyncService {
     }
 
     _isSyncing = true;
-    debugPrint('🔄 Iniciando procesamiento de cola offline...');
+    print('🔄 Procesando cola...');
 
     try {
       while (ConnectivityService.instance.currentStatus == ConnectionStatus.online) {
         final items = await SyncQueueService.instance.getPendingItems();
+        print('📦 Items pendientes: ${items.length}');
         if (items.isEmpty) {
           debugPrint('✅ Cola vacía.');
           break;
@@ -68,6 +69,7 @@ class OfflineSyncService {
         } catch (e) {
           await SyncQueueService.instance.markFailed(id, e);
           debugPrint('❌ Error sincronizando item $id: $e');
+          break;
         }
       }
     } finally {

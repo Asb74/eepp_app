@@ -31,6 +31,10 @@ class BotonFotoFlotante extends StatelessWidget {
     if (imagen == null) return;
 
     final file = File(imagen.path);
+    String boleta = '';
+    String tituloPantalla = pantalla;
+    String nombreArchivo =
+        '${idMuestra!}_${limpiarNombre(pantalla)}_${DateTime.now().millisecondsSinceEpoch}.jpg';
 
     try {
       final muestraDoc = await FirebaseFirestore.instance
@@ -38,18 +42,19 @@ class BotonFotoFlotante extends StatelessWidget {
           .doc(idMuestra)
           .get();
       final data = muestraDoc.data() ?? <String, dynamic>{};
-      final boleta = data['Boleta']?.toString() ?? '';
+      boleta = data['Boleta']?.toString() ?? '';
 
       final nombrePlantilla = 'Plantillas$pantalla';
       final docPlantilla = await FirebaseFirestore.instance
           .collection(nombrePlantilla)
           .doc(cultivo)
           .get();
-      final tituloPantalla = docPlantilla.data()?['Titulo']?.toString() ?? pantalla;
+      tituloPantalla = docPlantilla.data()?['Titulo']?.toString() ?? pantalla;
 
-      final nombreArchivo =
+      nombreArchivo =
           '${idMuestra!}_${limpiarNombre(tituloPantalla)}_${DateTime.now().millisecondsSinceEpoch}.jpg';
 
+      await ConnectivityService.instance.refresh();
       if (ConnectivityService.instance.currentStatus != ConnectionStatus.online) {
         await guardarFotoLocal(
           imagen: file,
@@ -120,6 +125,15 @@ class BotonFotoFlotante extends StatelessWidget {
         }
       }
     } catch (_) {
+      await guardarFotoLocal(
+        imagen: file,
+        idMuestra: idMuestra!,
+        pantalla: tituloPantalla,
+        boleta: boleta,
+        rutaDestino: usuario.rutaServidor,
+        filename: nombreArchivo,
+      );
+
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Guardado en local')),
