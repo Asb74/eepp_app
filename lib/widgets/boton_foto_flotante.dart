@@ -29,6 +29,7 @@ class BotonFotoFlotante extends StatefulWidget {
 
 class _BotonFotoFlotanteState extends State<BotonFotoFlotante> {
   static final Set<String> _rutasProcesadas = <String>{};
+  bool _lostDataHandled = false;
 
   Future<void> _tomarYGuardarFoto(BuildContext context) async {
     if (widget.idMuestra == null || widget.idMuestra!.isEmpty || widget.cultivo.isEmpty) return;
@@ -44,8 +45,9 @@ class _BotonFotoFlotanteState extends State<BotonFotoFlotante> {
   Future<void> procesarImagen(BuildContext context, File file) async {
     if (widget.idMuestra == null || widget.idMuestra!.isEmpty || widget.cultivo.isEmpty) return;
 
-    if (_rutasProcesadas.contains(file.path)) return;
-    _rutasProcesadas.add(file.path);
+    final String key = '${file.path}_${file.lastModifiedSync().millisecondsSinceEpoch}';
+    if (_rutasProcesadas.contains(key)) return;
+    _rutasProcesadas.add(key);
 
     String boleta = '';
     String tituloPantalla = widget.pantalla;
@@ -159,14 +161,18 @@ class _BotonFotoFlotanteState extends State<BotonFotoFlotante> {
   }
 
   Future<void> recuperarImagenPerdida(BuildContext context) async {
+    if (_lostDataHandled) return;
+    _lostDataHandled = true;
+
     try {
       final lostData = await ImagePicker().retrieveLostData();
       if (lostData.isEmpty || lostData.file == null) return;
 
       final file = File(lostData.file!.path);
+      print('📥 Recuperando imagen perdida: ${file.path}');
       await procesarImagen(context, file);
-    } catch (_) {
-      // Manejo silencioso para no interrumpir la UI.
+    } catch (e) {
+      debugPrint('Error recuperando imagen perdida: $e');
     }
   }
 
