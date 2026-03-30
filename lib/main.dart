@@ -8,12 +8,15 @@ import 'buscar_muestra.dart';
 import 'login.dart';
 import 'usuario_actual.dart' as usuario;
 import 'services/server_config_service.dart';
+import 'services/connectivity_service.dart';
+import 'widgets/connection_status_icon.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  await ConnectivityService.instance.startMonitoring();
   runApp(const MyApp());
 }
 
@@ -28,6 +31,11 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         colorSchemeSeed: Colors.green,
       ),
+      builder: (context, child) {
+        return ConnectionStatusSnackbarListener(
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       home: const AuthWrapper(),
     );
   }
@@ -143,6 +151,9 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('HarvestSync'),
         centerTitle: true,
+        actions: const [
+          ConnectionStatusIcon(),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(vertical: 30),
