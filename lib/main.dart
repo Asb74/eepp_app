@@ -13,11 +13,13 @@ import 'services/offline_sync_service.dart';
 import 'widgets/app_bar_actions.dart';
 import 'widgets/connection_status_icon.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  await ConnectivityService.instance.startMonitoring();
+  await OfflineSyncService.instance.init();
   runApp(const MyApp());
 }
 
@@ -56,8 +58,6 @@ class AuthWrapper extends StatelessWidget {
           );
         }
         if (snapshot.hasData) {
-          ConnectivityService.instance.startMonitoring();
-          OfflineSyncService.instance.init();
           return const HomeScreenWrapper();
         }
         return const LoginPage();

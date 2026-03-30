@@ -4,6 +4,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
+import 'offline_sync_service.dart';
 import 'server_config_service.dart';
 
 enum ConnectionStatus {
@@ -141,6 +142,11 @@ class ConnectivityService {
 
     _currentStatus = status;
     statusNotifier.value = status;
+    if (status == ConnectionStatus.online) {
+      Future.microtask(() {
+        OfflineSyncService.instance.refresh();
+      });
+    }
     if (notify) {
       _statusController.add(status);
     }
