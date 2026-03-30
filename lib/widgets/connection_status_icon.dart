@@ -78,6 +78,7 @@ class ConnectionStatusSnackbarListener extends StatefulWidget {
 class _ConnectionStatusSnackbarListenerState
     extends State<ConnectionStatusSnackbarListener> {
   StreamSubscription<ConnectionStatus>? _subscription;
+  DateTime? _lastShown;
 
   @override
   void initState() {
@@ -86,9 +87,15 @@ class _ConnectionStatusSnackbarListenerState
   }
 
   void _showMessage(ConnectionStatus status) {
+    if (_lastShown != null &&
+        DateTime.now().difference(_lastShown!).inSeconds < 3) {
+      return;
+    }
+
     final messenger = ScaffoldMessenger.maybeOf(context);
     if (messenger == null) return;
 
+    _lastShown = DateTime.now();
     messenger
       ..hideCurrentSnackBar()
       ..showSnackBar(

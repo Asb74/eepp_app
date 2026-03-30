@@ -16,7 +16,6 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  await ConnectivityService.instance.startMonitoring();
   runApp(const MyApp());
 }
 
@@ -55,6 +54,7 @@ class AuthWrapper extends StatelessWidget {
           );
         }
         if (snapshot.hasData) {
+          ConnectivityService.instance.startMonitoring();
           return const HomeScreenWrapper();
         }
         return const LoginPage();
@@ -117,7 +117,6 @@ class _HomeScreenWrapperState extends State<HomeScreenWrapper> {
       }
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
