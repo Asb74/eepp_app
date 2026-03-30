@@ -105,7 +105,10 @@ class InformeGenerator {
     // Obtener imágenes desde el servidor según rutaServidor
     final fotos = await _obtenerFotosPorSeccion(idMuestra, tituloSeccion);
     final imagenes = <pw.Widget>[];
-    final carpeta = Uri.encodeComponent(usuario.rutaServidor);
+    final rutaServidor = serverConfig.rutaServidor.isNotEmpty
+        ? serverConfig.rutaServidor
+        : usuario.rutaServidor;
+    final carpeta = Uri.encodeComponent(rutaServidor);
 
     for (final ruta in fotos) {
       final urlCompleta = '$baseUrl/fotos/$ruta?carpeta=$carpeta';
