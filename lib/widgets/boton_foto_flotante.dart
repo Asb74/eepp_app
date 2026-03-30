@@ -11,7 +11,7 @@ import 'package:harvestsync/services/offline_write_service.dart';
 import 'package:harvestsync/services/server_config_service.dart';
 import 'package:harvestsync/usuario_actual.dart' as usuario;
 
-class BotonFotoFlotante extends StatelessWidget {
+class BotonFotoFlotante extends StatefulWidget {
   final String? idMuestra;
   final String pantalla;
   final String cultivo;
@@ -23,42 +23,58 @@ class BotonFotoFlotante extends StatelessWidget {
     required this.cultivo,
   });
 
+  @override
+  State<BotonFotoFlotante> createState() => _BotonFotoFlotanteState();
+}
+
+class _BotonFotoFlotanteState extends State<BotonFotoFlotante> {
+  static final Set<String> _rutasProcesadas = <String>{};
+
   Future<void> _tomarYGuardarFoto(BuildContext context) async {
-    if (idMuestra == null || idMuestra!.isEmpty || cultivo.isEmpty) return;
+    if (widget.idMuestra == null || widget.idMuestra!.isEmpty || widget.cultivo.isEmpty) return;
 
     final picker = ImagePicker();
     final imagen = await picker.pickImage(source: ImageSource.camera, imageQuality: 85);
     if (imagen == null) return;
 
     final file = File(imagen.path);
+    await procesarImagen(context, file);
+  }
+
+  Future<void> procesarImagen(BuildContext context, File file) async {
+    if (widget.idMuestra == null || widget.idMuestra!.isEmpty || widget.cultivo.isEmpty) return;
+
+    if (_rutasProcesadas.contains(file.path)) return;
+    _rutasProcesadas.add(file.path);
+
     String boleta = '';
-    String tituloPantalla = pantalla;
+    String tituloPantalla = widget.pantalla;
     String nombreArchivo =
-        '${idMuestra!}_${limpiarNombre(pantalla)}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        '${widget.idMuestra!}_${limpiarNombre(widget.pantalla)}_${DateTime.now().millisecondsSinceEpoch}.jpg';
 
     try {
       final muestraDoc = await FirebaseFirestore.instance
           .collection('Muestras')
-          .doc(idMuestra)
+          .doc(widget.idMuestra)
           .get();
       final data = muestraDoc.data() ?? <String, dynamic>{};
       boleta = data['Boleta']?.toString() ?? '';
 
-      final nombrePlantilla = 'Plantillas$pantalla';
+      final nombrePlantilla = 'Plantillas${widget.pantalla}';
       final docPlantilla = await FirebaseFirestore.instance
           .collection(nombrePlantilla)
-          .doc(cultivo)
+          .doc(widget.cultivo)
           .get();
-      tituloPantalla = docPlantilla.data()?['Titulo']?.toString() ?? pantalla;
+      tituloPantalla = docPlantilla.data()?['Titulo']?.toString() ?? widget.pantalla;
 
       nombreArchivo =
-          '${idMuestra!}_${limpiarNombre(tituloPantalla)}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+          '${widget.idMuestra!}_${limpiarNombre(tituloPantalla)}_${DateTime.now().millisecondsSinceEpoch}.jpg';
 
       await ConnectivityService.instance.refresh();
       if (ConnectivityService.instance.currentStatus != ConnectionStatus.online) {
         await guardarFotoLocal(
           imagen: file,
-          idMuestra: idMuestra!,
+          idMuestra: widget.idMuestra!,
           pantalla: tituloPantalla,
           boleta: boleta,
           rutaDestino: usuario.rutaServidor,
@@ -78,7 +94,7 @@ class BotonFotoFlotante extends StatelessWidget {
 
       final request = http.MultipartRequest('POST', uri)
         ..headers['X-API-KEY'] = serverConfig.apiKey
-        ..fields['idMuestra'] = idMuestra!
+        ..fields['idMuestra'] = widget.idMuestra!
         ..fields['pantalla'] = tituloPantalla
         ..fields['boleta'] = boleta
         ..fields['rutaDestino'] =
@@ -96,7 +112,7 @@ class BotonFotoFlotante extends StatelessWidget {
           collection: 'Fotos',
           payload: <String, dynamic>{
             'ruta_local': nombreArchivo,
-            'idMuestra': idMuestra!,
+            'idMuestra': widget.idMuestra!,
             'pantalla': tituloPantalla,
             'boleta': boleta,
             'timestamp': Timestamp.now(),
@@ -111,7 +127,7 @@ class BotonFotoFlotante extends StatelessWidget {
       } else {
         await guardarFotoLocal(
           imagen: file,
-          idMuestra: idMuestra!,
+          idMuestra: widget.idMuestra!,
           pantalla: tituloPantalla,
           boleta: boleta,
           rutaDestino: usuario.rutaServidor,
@@ -127,7 +143,7 @@ class BotonFotoFlotante extends StatelessWidget {
     } catch (_) {
       await guardarFotoLocal(
         imagen: file,
-        idMuestra: idMuestra!,
+        idMuestra: widget.idMuestra!,
         pantalla: tituloPantalla,
         boleta: boleta,
         rutaDestino: usuario.rutaServidor,
@@ -142,14 +158,35 @@ class BotonFotoFlotante extends StatelessWidget {
     }
   }
 
+  Future<void> recuperarImagenPerdida(BuildContext context) async {
+    try {
+      final lostData = await ImagePicker().retrieveLostData();
+      if (lostData.isEmpty || lostData.file == null) return;
+
+      final file = File(lostData.file!.path);
+      await procesarImagen(context, file);
+    } catch (_) {
+      // Manejo silencioso para no interrumpir la UI.
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      recuperarImagenPerdida(context);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (idMuestra == null || idMuestra!.isEmpty || cultivo.isEmpty) {
+    if (widget.idMuestra == null || widget.idMuestra!.isEmpty || widget.cultivo.isEmpty) {
       return const SizedBox.shrink();
     }
 
     return FloatingActionButton(
-      heroTag: 'foto_$pantalla',
+      heroTag: 'foto_${widget.pantalla}',
       onPressed: () => _tomarYGuardarFoto(context),
       tooltip: 'Tomar foto',
       child: const Icon(Icons.camera_alt),
