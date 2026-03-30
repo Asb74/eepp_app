@@ -73,28 +73,41 @@ class _HomeScreenWrapperState extends State<HomeScreenWrapper> {
   }
 
   Future<void> _verificarYcargarUsuario() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      final doc = await FirebaseFirestore.instance
-          .collection('UsuariosAutorizados')
-          .doc(user.uid)
-          .get();
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final doc = await FirebaseFirestore.instance
+            .collection('UsuariosAutorizados')
+            .doc(user.uid)
+            .get();
 
-      final data = doc.data();
-      if (data != null && data['Valor'] == true) {
-        usuario.uidUsuario = user.uid;
-        usuario.nombreUsuario = data['Nombre'] ?? '';
-        usuario.correoUsuario = data['correo'] ?? '';
+        final data = doc.data();
+        if (data != null && data['Valor'] == true) {
+          usuario.uidUsuario = user.uid;
+          usuario.nombreUsuario = data['Nombre'] ?? '';
+          usuario.correoUsuario = data['correo'] ?? '';
 
-        final serverConfig = await getServerConfig();
-        usuario.rutaServidor = serverConfig.rutaServidor;
-        print("📥 Ruta destino cargada desde Firebase: ${usuario.rutaServidor}");
-      } else {
-        _autorizado = false;
-        await FirebaseAuth.instance.signOut();
+          try {
+            final serverConfig = await getServerConfig();
+            usuario.rutaServidor = serverConfig.rutaServidor;
+            print(
+              "📥 Ruta destino cargada desde Firebase: ${usuario.rutaServidor}",
+            );
+          } catch (e) {
+            print("❌ Error config: $e");
+          }
+        } else {
+          _autorizado = false;
+          await FirebaseAuth.instance.signOut();
+        }
+      }
+    } catch (e) {
+      print("❌ Error en _verificarYcargarUsuario: $e");
+    } finally {
+      if (mounted) {
+        setState(() => _cargando = false);
       }
     }
-    if (mounted) setState(() => _cargando = false);
   }
 
 

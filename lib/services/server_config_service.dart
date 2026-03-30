@@ -13,33 +13,57 @@ class ServerConfig {
 }
 
 Future<ServerConfig> getServerConfig() async {
-  final configDoc = await FirebaseFirestore.instance
-      .collection('ServidorFotos')
-      .doc('configSalida')
-      .get();
+  try {
+    print('🔍 Cargando configuración servidor...');
 
-  final data = configDoc.data();
-  if (data == null) {
-    throw Exception('No existe el documento ServidorFotos/configSalida.');
+    final configDoc = await FirebaseFirestore.instance
+        .collection('ServidorFotos')
+        .doc('configSalida')
+        .get();
+
+    if (!configDoc.exists) {
+      throw Exception(
+        'No existe el documento ServidorFotos/configSalida en Firestore.',
+      );
+    }
+
+    final data = configDoc.data();
+    if (data == null) {
+      throw Exception(
+        'El documento ServidorFotos/configSalida no contiene datos (data() == null).',
+      );
+    }
+
+    final url = (data['url'] ?? '').toString().trim();
+    if (url.isEmpty) {
+      throw Exception(
+        'Configuración inválida: el campo obligatorio "url" está vacío o no existe.',
+      );
+    }
+
+    final apiKey = (data['api_key'] ?? '').toString().trim();
+    if (apiKey.isEmpty) {
+      throw Exception(
+        'Configuración inválida: el campo obligatorio "api_key" está vacío o no existe.',
+      );
+    }
+
+    final rutaServidor = (data['rutaservidor'] ?? '').toString().trim();
+    if (rutaServidor.isEmpty) {
+      throw Exception(
+        'Configuración inválida: el campo obligatorio "rutaservidor" está vacío o no existe.',
+      );
+    }
+
+    print('✅ Config cargada correctamente');
+
+    return ServerConfig(
+      url: url,
+      apiKey: apiKey,
+      rutaServidor: rutaServidor,
+    );
+  } catch (e) {
+    print('❌ Error config: $e');
+    throw Exception('Error al cargar configuración de servidor: $e');
   }
-
-  final url = (data['url'] ?? '').toString().trim();
-  if (url.isEmpty) {
-    throw Exception('Configuración inválida: el campo "url" está vacío en configSalida.');
-  }
-
-  final apiKeyRaw = data['api_key'];
-  if (apiKeyRaw == null) {
-    print('❌ Configuración inválida: falta el campo "api_key" en ServidorFotos/configSalida.');
-    throw Exception('Configuración inválida: falta "api_key" en configSalida.');
-  }
-
-  final apiKey = apiKeyRaw.toString();
-  final rutaServidor = (data['rutaservidor'] ?? '').toString();
-
-  return ServerConfig(
-    url: url,
-    apiKey: apiKey,
-    rutaServidor: rutaServidor,
-  );
 }
