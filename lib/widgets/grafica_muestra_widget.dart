@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/rendering.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:harvestsync/services/connectivity_service.dart';
+import 'package:harvestsync/services/offline_write_service.dart';
 
 class GraficaMuestraWidget extends StatefulWidget {
   final String idMuestra;
@@ -31,13 +33,21 @@ class _GraficaMuestraWidgetState extends State<GraficaMuestraWidget> {
       final file = File(filePath);
       await file.writeAsBytes(pngBytes);
 
-      // Subir a Firestore como metadata (la ruta local)
-      await FirebaseFirestore.instance.collection('Fotos').add({
+      final fotoData = {
         'idMuestra': widget.idMuestra,
         'pantalla': 'Graficas',
         'timestamp': FieldValue.serverTimestamp(),
         'ruta': filePath,
-      });
+      };
+      final canUseServer = ConnectivityService.instance.canReachServer;
+      if (canUseServer) {
+        await FirebaseFirestore.instance.collection('Fotos').add(fotoData);
+      } else {
+        await OfflineWriteService.guardarLocalmente(
+          collection: 'Fotos',
+          data: fotoData,
+        );
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/rendering.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:harvestsync/services/connectivity_service.dart';
+import 'package:harvestsync/services/offline_write_service.dart';
 
 class GraficaDonutWidget extends StatefulWidget {
   final String idMuestra;
@@ -44,12 +46,21 @@ class _GraficaDonutWidgetState extends State<GraficaDonutWidget> {
       final file = File(filePath);
       await file.writeAsBytes(pngBytes);
 
-      await FirebaseFirestore.instance.collection('Fotos').add({
+      final fotoData = {
         'idMuestra': widget.idMuestra,
         'pantalla': widget.pantalla,
         'timestamp': FieldValue.serverTimestamp(),
         'ruta': filePath,
-      });
+      };
+      final canUseServer = ConnectivityService.instance.canReachServer;
+      if (canUseServer) {
+        await FirebaseFirestore.instance.collection('Fotos').add(fotoData);
+      } else {
+        await OfflineWriteService.guardarLocalmente(
+          collection: 'Fotos',
+          data: fotoData,
+        );
+      }
 
       debugPrint('✅ Gráfica guardada: $filePath');
     } catch (e) {
@@ -129,12 +140,21 @@ class _GraficaDonutWidgetState extends State<GraficaDonutWidget> {
       final file = File(filePath);
       await file.writeAsBytes(pngBytes);
 
-      await FirebaseFirestore.instance.collection('Fotos').add({
+      final fotoData = {
         'idMuestra': widget.idMuestra,
         'pantalla': widget.pantalla,
         'timestamp': FieldValue.serverTimestamp(),
         'ruta': filePath,
-      });
+      };
+      final canUseServer = ConnectivityService.instance.canReachServer;
+      if (canUseServer) {
+        await FirebaseFirestore.instance.collection('Fotos').add(fotoData);
+      } else {
+        await OfflineWriteService.guardarLocalmente(
+          collection: 'Fotos',
+          data: fotoData,
+        );
+      }
 
       debugPrint('✅ Gráfica guardada: $filePath');
     } catch (e) {

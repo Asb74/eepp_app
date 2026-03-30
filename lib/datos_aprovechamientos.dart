@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:harvestsync/widgets/boton_foto_flotante.dart';
 import 'package:harvestsync/widgets/boton_informe_flotante.dart';
+import 'package:harvestsync/services/connectivity_service.dart';
+import 'package:harvestsync/services/offline_write_service.dart';
 
 class DatosAprovechamientosPage extends StatefulWidget {
   final String idMuestra;
@@ -77,17 +79,40 @@ class _DatosAprovechamientosPageState extends State<DatosAprovechamientosPage> {
     });
 
     try {
-      await FirebaseFirestore.instance.collection('Muestras').doc(widget.idMuestra).update({
+      final data = {
         'Destrio': destrio,
         'Industria': industria,
         'Categoria I': categoriaI,
         'Categoria II': categoriaII,
-      });
+      };
+      final canUseServer = ConnectivityService.instance.canReachServer;
+
+      if (canUseServer) {
+        await FirebaseFirestore.instance
+            .collection('Muestras')
+            .doc(widget.idMuestra)
+            .update(data);
+      } else {
+        await OfflineWriteService.guardarLocalmente(
+          collection: 'Muestras',
+          documentId: widget.idMuestra,
+          data: data,
+        );
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Datos guardados correctamente')),
+        SnackBar(
+          content: Text(
+            canUseServer
+                ? 'Datos guardados correctamente'
+                : '💾 Datos guardados localmente (sin conexión)',
+          ),
+        ),
       );
     } catch (e) {
+      if (!ConnectivityService.instance.canReachServer) {
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error al guardar datos: $e'),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:harvestsync/services/connectivity_service.dart';
+import 'package:harvestsync/services/offline_write_service.dart';
 
 class NuevaMuestra extends StatefulWidget {
   const NuevaMuestra({super.key});
@@ -19,15 +21,31 @@ class _NuevaMuestraState extends State<NuevaMuestra> {
 
   Future<void> _guardarMuestra() async {
     if (_formKey.currentState!.validate()) {
-      await FirebaseFirestore.instance.collection('Muestras').add({
+      final data = {
         'boleta': _boletaController.text.trim(),
         'cultivo': _cultivoSeleccionado,
         'observaciones': _observacionesController.text.trim(),
         'fecha': Timestamp.now(),
-      });
+      };
+
+      final canUseServer = ConnectivityService.instance.canReachServer;
+      if (canUseServer) {
+        await FirebaseFirestore.instance.collection('Muestras').add(data);
+      } else {
+        await OfflineWriteService.guardarLocalmente(
+          collection: 'Muestras',
+          data: data,
+        );
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('✅ Muestra guardada')),
+        SnackBar(
+          content: Text(
+            canUseServer
+                ? '✅ Muestra guardada'
+                : '💾 Muestra guardada localmente (sin conexión)',
+          ),
+        ),
       );
 
       _formKey.currentState!.reset();
