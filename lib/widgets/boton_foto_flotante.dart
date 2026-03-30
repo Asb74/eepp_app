@@ -83,7 +83,7 @@ class BotonFotoFlotante extends StatelessWidget {
           .get();
       final tituloPantalla = docPlantilla.data()?['Titulo'] ?? pantalla;
 
-      final nombre = "${idMuestra!}*${tituloPantalla}*${DateTime.now().millisecondsSinceEpoch}.jpg";
+      final nombre = "${idMuestra!}_${tituloPantalla}_${DateTime.now().millisecondsSinceEpoch}.jpg";
 
       final uri = Uri.parse('${serverConfig.url}/upload');
       final request = http.MultipartRequest('POST', uri)
