@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:harvestsync/usuario_actual.dart' as usuario;
 import 'package:harvestsync/util/conexion_util.dart';
 import 'package:harvestsync/services/foto_local_service.dart';
+import 'package:harvestsync/services/server_config_service.dart';
 
 class BotonFotoFlotante extends StatelessWidget {
   final String? idMuestra;
@@ -66,17 +67,7 @@ class BotonFotoFlotante extends StatelessWidget {
 
         return;
       }
-
-
-
-      final urlDoc = await FirebaseFirestore.instance
-          .collection('ServidorFotos')
-          .doc('url_actual')
-          .get();
-      final urlServidor = urlDoc.data()?['url'];
-      if (urlServidor == null || urlServidor.isEmpty) {
-        throw 'No se pudo obtener la URL del servidor.';
-      }
+      final serverConfig = await getServerConfig();
 
       final muestraDoc = await FirebaseFirestore.instance
           .collection('Muestras')
@@ -92,12 +83,15 @@ class BotonFotoFlotante extends StatelessWidget {
           .get();
       final tituloPantalla = docPlantilla.data()?['Titulo'] ?? pantalla;
 
-      final uri = Uri.parse('$urlServidor/upload');
+      final uri = Uri.parse('${serverConfig.url}/upload');
       final request = http.MultipartRequest('POST', uri)
+        ..headers['X-API-KEY'] = serverConfig.apiKey
         ..fields['idMuestra'] = idMuestra!
         ..fields['pantalla'] = tituloPantalla
         ..fields['boleta'] = boleta
-        ..fields['rutaDestino'] = usuario.rutaServidor; // 💡 Aquí se pasa la ruta
+        ..fields['rutaDestino'] = serverConfig.rutaServidor.isNotEmpty
+            ? serverConfig.rutaServidor
+            : usuario.rutaServidor; // 💡 Aquí se pasa la ruta
 
       final file = File(imagen.path);
       request.files.add(await http.MultipartFile.fromPath('file', file.path));

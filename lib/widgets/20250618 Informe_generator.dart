@@ -50,7 +50,7 @@ class InformeGenerator {
 
     final urlDoc = await FirebaseFirestore.instance
         .collection('ServidorFotos')
-        .doc('url_actual')
+        .doc('configSalida')
         .get();
     final baseUrl = urlDoc.data()?['url'] ?? '';
 

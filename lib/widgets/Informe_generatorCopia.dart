@@ -58,7 +58,7 @@ class InformeGenerator {
     // Obtener base URL actual
     final urlDoc = await FirebaseFirestore.instance
         .collection('ServidorFotos')
-        .doc('url_actual')
+        .doc('configSalida')
         .get();
     final baseUrl = urlDoc.data()?['url'] ?? '';
     print('🌐 URL base del servidor: $baseUrl');

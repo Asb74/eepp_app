@@ -26,7 +26,7 @@ class BotonFotoFlotante extends StatelessWidget {
 
       final urlDoc = await FirebaseFirestore.instance
           .collection('ServidorFotos')
-          .doc('url_actual')
+          .doc('configSalida')
           .get();
       final urlServidor = urlDoc.data()?['url'];
       if (urlServidor == null || urlServidor.isEmpty) {

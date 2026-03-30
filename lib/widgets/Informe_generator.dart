@@ -6,6 +6,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:http/http.dart' as http;
 import 'package:harvestsync/usuario_actual.dart' as usuario;
+import 'package:harvestsync/services/server_config_service.dart';
 
 class InformeGenerator {
   static Future<pw.Document> generarPDF({
@@ -48,11 +49,8 @@ class InformeGenerator {
     pw.SizedBox(height: 20),
   ]);
 
-  final urlDoc = await FirebaseFirestore.instance
-      .collection('ServidorFotos')
-      .doc('url_actual')
-      .get();
-  final baseUrl = urlDoc.data()?['url'] ?? '';
+  final serverConfig = await getServerConfig();
+  final baseUrl = serverConfig.url;
 
   for (final seccion in secciones) {
     final nombreColeccion = seccion;
@@ -112,7 +110,10 @@ class InformeGenerator {
     for (final ruta in fotos) {
       final urlCompleta = '$baseUrl/fotos/$ruta?carpeta=$carpeta';
       try {
-        final response = await http.get(Uri.parse(urlCompleta));
+        final response = await http.get(
+          Uri.parse(urlCompleta),
+          headers: {'X-API-KEY': serverConfig.apiKey},
+        );
         print("🌐 Petición a: $urlCompleta → ${response.statusCode}");
         if (response.statusCode == 200) {
           final image = pw.MemoryImage(response.bodyBytes);

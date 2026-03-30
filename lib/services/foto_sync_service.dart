@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:harvestsync/services/server_config_service.dart';
 
 Future<void> subirFotosPendientes() async {
   final dir = await getApplicationDocumentsDirectory();
@@ -10,15 +10,11 @@ Future<void> subirFotosPendientes() async {
 
   if (!await subdir.exists()) return;
 
-  // 🔁 Recuperar URL del servidor desde Firestore
-  final urlDoc = await FirebaseFirestore.instance
-      .collection('ServidorFotos')
-      .doc('url_actual')
-      .get();
-
-  final urlServidor = urlDoc.data()?['url'];
-  if (urlServidor == null || urlServidor.isEmpty) {
-    print('❌ No se pudo recuperar la URL del servidor desde Firestore.');
+  ServerConfig serverConfig;
+  try {
+    serverConfig = await getServerConfig();
+  } catch (e) {
+    print('❌ No se pudo cargar la configuración del servidor para sincronizar: $e');
     return;
   }
 
@@ -40,9 +36,10 @@ Future<void> subirFotosPendientes() async {
       final imagen = File(ruta);
       if (!await imagen.exists()) continue;
 
-      final uri = Uri.parse('$urlServidor/upload');
+      final uri = Uri.parse('${serverConfig.url}/upload');
 
       final request = http.MultipartRequest('POST', uri)
+        ..headers['X-API-KEY'] = serverConfig.apiKey
         ..fields['idMuestra'] = idMuestra
         ..fields['pantalla'] = pantalla
         ..fields['boleta'] = boleta
@@ -55,7 +52,7 @@ Future<void> subirFotosPendientes() async {
         await imagen.delete();
         await File(archivoJson.path).delete();
       } else {
-        print('❌ Error al subir: ${response.statusCode}');
+        print('❌ Error al subir foto pendiente: ${response.statusCode}');
       }
     } catch (e) {
       print('❌ Excepción al subir foto pendiente: $e');
