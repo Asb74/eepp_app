@@ -7,6 +7,7 @@ import 'nueva_muestra.dart';
 import 'buscar_muestra.dart';
 import 'login.dart';
 import 'usuario_actual.dart' as usuario;
+import 'services/server_config_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -85,16 +86,9 @@ class _HomeScreenWrapperState extends State<HomeScreenWrapper> {
         usuario.nombreUsuario = data['Nombre'] ?? '';
         usuario.correoUsuario = data['correo'] ?? '';
 
-        // AHORA
-        final servidorDoc = await FirebaseFirestore.instance
-            .collection('ServidorFotos')
-            .doc('confingSalida')
-            .get();
-        usuario.rutaServidor = servidorDoc.data()?['rutaservidor'] ?? '';
+        final serverConfig = await getServerConfig();
+        usuario.rutaServidor = serverConfig.rutaServidor;
         print("📥 Ruta destino cargada desde Firebase: ${usuario.rutaServidor}");
-
-
-        usuario.rutaServidor = servidorDoc.data()?['rutaservidor'] ?? '';
       } else {
         _autorizado = false;
         await FirebaseAuth.instance.signOut();
@@ -206,4 +200,3 @@ class HomeScreen extends StatelessWidget {
     );
   }
 }
-

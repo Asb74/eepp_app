@@ -1,12 +1,11 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:pdf/widgets.dart' as pw;
 import 'package:http/http.dart' as http;
 import 'package:pdfrx/pdfrx.dart';
 import 'package:harvestsync/widgets/informe_generator.dart';
 import 'package:harvestsync/usuario_actual.dart' as usuario;
+import 'package:harvestsync/services/server_config_service.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:printing/printing.dart';
 
@@ -58,23 +57,18 @@ class _InformeViewerPageState extends State<InformeViewerPage> {
   Future<void> _subirPDFAlServidor() async {
     try {
       final file = File(_pdfPath!);
-      final bytes = await file.readAsBytes();
+      await file.readAsBytes();
+      final serverConfig = await getServerConfig();
 
-      final urlDoc = await FirebaseFirestore.instance
-          .collection('ServidorFotos')
-          .doc('url_actual')
-          .get();
-      final urlServidor = urlDoc.data()?['url'];
-      if (urlServidor == null || urlServidor.isEmpty) {
-        throw 'URL del servidor no disponible.';
-      }
-
-      final uri = Uri.parse('$urlServidor/upload');
+      final uri = Uri.parse('${serverConfig.url}/upload');
       final request = http.MultipartRequest('POST', uri)
+        ..headers['X-API-KEY'] = serverConfig.apiKey
         ..fields['idMuestra'] = widget.idMuestra
         ..fields['pantalla'] = 'InformePDF'
         ..fields['boleta'] = ''
-        ..fields['rutaDestino'] = usuario.rutaServidor
+        ..fields['rutaDestino'] = serverConfig.rutaServidor.isNotEmpty
+            ? serverConfig.rutaServidor
+            : usuario.rutaServidor
         ..files.add(await http.MultipartFile.fromPath('file', file.path));
 
       final response = await request.send();
