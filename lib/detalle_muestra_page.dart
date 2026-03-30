@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:harvestsync/widgets/app_bar_actions.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -102,7 +103,7 @@ class _DetalleMuestraPageState extends State<DetalleMuestraPage> {
             height: 400,
             child: Column(
               children: [
-                AppBar(title: const Text('Escanear Albarán')),
+                AppBar(title: const Text('Escanear Albarán'), actions: kConnectionStatusActions),
                 Expanded(
                   child: MobileScanner(
                     onDetect: _onDetect,
@@ -165,7 +166,7 @@ class _DetalleMuestraPageState extends State<DetalleMuestraPage> {
     final fechaFormateada = widget.fechaHora.toDate().toLocal().toString();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Detalle Muestra')),
+      appBar: AppBar(title: const Text('Detalle Muestra'), actions: kConnectionStatusActions),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: ListView(

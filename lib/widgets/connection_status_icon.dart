@@ -88,7 +88,7 @@ class _ConnectionStatusSnackbarListenerState
 
   void _showMessage(ConnectionStatus status) {
     if (_lastShown != null &&
-        DateTime.now().difference(_lastShown!).inSeconds < 3) {
+        DateTime.now().difference(_lastShown!).inMilliseconds < 1800) {
       return;
     }
 
@@ -114,7 +114,7 @@ class _ConnectionStatusSnackbarListenerState
       case ConnectionStatus.online:
         return 'Conexión restaurada';
       case ConnectionStatus.noServer:
-        return 'Servidor no disponible (Tailscale?)';
+        return 'Servidor no disponible';
     }
   }
 

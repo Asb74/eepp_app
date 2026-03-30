@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:harvestsync/widgets/app_bar_actions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:harvestsync/usuario_actual.dart' as usuario;
@@ -67,7 +68,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Login')),
+      appBar: AppBar(title: const Text('Login'), actions: kConnectionStatusActions),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

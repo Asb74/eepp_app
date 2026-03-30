@@ -7,6 +7,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:http/http.dart' as http;
 import 'package:harvestsync/usuario_actual.dart' as usuario;
 import 'package:harvestsync/services/server_config_service.dart';
+import 'package:harvestsync/services/connectivity_service.dart';
 
 class InformeGenerator {
   static Future<pw.Document> generarPDF({
@@ -49,8 +50,16 @@ class InformeGenerator {
     pw.SizedBox(height: 20),
   ]);
 
-  final serverConfig = await getServerConfig();
-  final baseUrl = serverConfig.url;
+  ServerConfig? serverConfig;
+  String baseUrl = '';
+  if (ConnectivityService.instance.currentStatus == ConnectionStatus.online) {
+    try {
+      serverConfig = await getServerConfig();
+      baseUrl = serverConfig.url;
+    } catch (_) {
+      serverConfig = null;
+    }
+  }
 
   for (final seccion in secciones) {
     final nombreColeccion = seccion;
@@ -107,11 +116,14 @@ class InformeGenerator {
     final imagenes = <pw.Widget>[];
 
     for (final ruta in fotos) {
+      if (serverConfig == null || baseUrl.isEmpty) {
+        continue;
+      }
       final urlCompleta = '$baseUrl/fotos/$ruta';
       try {
         final response = await http.get(
           Uri.parse(urlCompleta),
-          headers: {'X-API-KEY': serverConfig.apiKey},
+          headers: {'X-API-KEY': serverConfig!.apiKey},
         );
         print("🌐 Petición a: $urlCompleta → ${response.statusCode}");
         if (response.statusCode == 200) {

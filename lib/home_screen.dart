@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:harvestsync/widgets/app_bar_actions.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:harvestsync/services/foto_sync_service.dart';
 import 'muestra_form.dart';
@@ -43,6 +44,7 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: const Text('Lista de Muestras'),
         actions: [
+          ...kConnectionStatusActions,
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: () {

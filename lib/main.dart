@@ -9,6 +9,8 @@ import 'login.dart';
 import 'usuario_actual.dart' as usuario;
 import 'services/server_config_service.dart';
 import 'services/connectivity_service.dart';
+import 'services/offline_sync_service.dart';
+import 'widgets/app_bar_actions.dart';
 import 'widgets/connection_status_icon.dart';
 
 void main() async {
@@ -55,6 +57,7 @@ class AuthWrapper extends StatelessWidget {
         }
         if (snapshot.hasData) {
           ConnectivityService.instance.startMonitoring();
+          OfflineSyncService.instance.init();
           return const HomeScreenWrapper();
         }
         return const LoginPage();
@@ -150,9 +153,7 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('HarvestSync'),
         centerTitle: true,
-        actions: const [
-          ConnectionStatusIcon(),
-        ],
+        actions: kConnectionStatusActions,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(vertical: 30),

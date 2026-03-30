@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:harvestsync/widgets/app_bar_actions.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:harvestsync/services/connectivity_service.dart';
 import 'package:harvestsync/services/offline_write_service.dart';
@@ -58,7 +59,7 @@ class _NuevaMuestraState extends State<NuevaMuestra> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Nueva Muestra')),
+      appBar: AppBar(title: const Text('Nueva Muestra'), actions: kConnectionStatusActions),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Form(

@@ -25,8 +25,12 @@ class ConnectivityService {
       ValueNotifier<ConnectionStatus>(ConnectionStatus.offline);
 
   StreamSubscription<dynamic>? _connectivitySubscription;
+  Timer? _periodicTimer;
+  Timer? _debounceTimer;
+
   ConnectionStatus _currentStatus = ConnectionStatus.offline;
   bool _started = false;
+  bool _isEvaluating = false;
 
   Stream<ConnectionStatus> get statusStream => _statusController.stream;
 
@@ -41,8 +45,15 @@ class ConnectivityService {
     _started = true;
 
     _connectivitySubscription =
-        _connectivity.onConnectivityChanged.listen((dynamic result) async {
-      await _evaluateAndEmit(connectivityResult: result);
+        _connectivity.onConnectivityChanged.listen((dynamic result) {
+      _debounceTimer?.cancel();
+      _debounceTimer = Timer(const Duration(milliseconds: 700), () async {
+        await _evaluateAndEmit(connectivityResult: result);
+      });
+    });
+
+    _periodicTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      refresh();
     });
 
     await _evaluateAndEmit(notify: false);
@@ -54,6 +65,9 @@ class ConnectivityService {
     dynamic connectivityResult,
     bool notify = true,
   }) async {
+    if (_isEvaluating) return;
+    _isEvaluating = true;
+
     try {
       final dynamic networkResult =
           connectivityResult ?? await _connectivity.checkConnectivity();
@@ -70,6 +84,8 @@ class ConnectivityService {
       );
     } catch (_) {
       _emitStatus(ConnectionStatus.offline, notify: notify);
+    } finally {
+      _isEvaluating = false;
     }
   }
 
@@ -131,6 +147,8 @@ class ConnectivityService {
   }
 
   Future<void> dispose() async {
+    _periodicTimer?.cancel();
+    _debounceTimer?.cancel();
     await _connectivitySubscription?.cancel();
     await _statusController.close();
     statusNotifier.dispose();

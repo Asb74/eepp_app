@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:harvestsync/widgets/app_bar_actions.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:harvestsync/widgets/boton_foto_flotante.dart';
 import 'package:harvestsync/widgets/boton_informe_flotante.dart';
@@ -158,6 +159,7 @@ class _CondicionPageState extends State<CondicionPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Condición'),
+        actions: kConnectionStatusActions,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
