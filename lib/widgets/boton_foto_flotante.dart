@@ -83,6 +83,8 @@ class BotonFotoFlotante extends StatelessWidget {
           .get();
       final tituloPantalla = docPlantilla.data()?['Titulo'] ?? pantalla;
 
+      final nombre = "${idMuestra!}*${tituloPantalla}*${DateTime.now().millisecondsSinceEpoch}.jpg";
+
       final uri = Uri.parse('${serverConfig.url}/upload');
       final request = http.MultipartRequest('POST', uri)
         ..headers['X-API-KEY'] = serverConfig.apiKey
@@ -94,19 +96,26 @@ class BotonFotoFlotante extends StatelessWidget {
             : usuario.rutaServidor; // 💡 Aquí se pasa la ruta
 
       final file = File(imagen.path);
-      request.files.add(await http.MultipartFile.fromPath('file', file.path));
+      request.files.add(await http.MultipartFile.fromPath(
+        'file',
+        file.path,
+        filename: nombre,
+      ));
 
       final response = await request.send();
 
       if (response.statusCode == 200) {
-        final responseBody = await response.stream.bytesToString();
-        final nombreArchivo = RegExp(r'"archivo"\s*:\s*"([^"]+)"')
-            .firstMatch(responseBody)
-            ?.group(1);
+        await FirebaseFirestore.instance.collection('Fotos').add({
+          'ruta_local': nombre,
+          'idMuestra': idMuestra!,
+          'pantalla': tituloPantalla,
+          'boleta': boleta,
+          'timestamp': Timestamp.now(),
+        });
 
-        if (nombreArchivo != null && context.mounted) {
+        if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('📸 Foto enviada correctamente: $nombreArchivo')),
+            SnackBar(content: Text('📸 Foto enviada correctamente: $nombre')),
           );
         }
       } else {
