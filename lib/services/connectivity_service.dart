@@ -27,7 +27,6 @@ class ConnectivityService {
   StreamSubscription<dynamic>? _connectivitySubscription;
   ConnectionStatus _currentStatus = ConnectionStatus.offline;
   bool _started = false;
-  String? _cachedServerUrl;
 
   Stream<ConnectionStatus> get statusStream => _statusController.stream;
 
@@ -97,7 +96,7 @@ class ConnectivityService {
             pingUri,
             headers: const {'Accept': 'application/json'},
           )
-          .timeout(const Duration(seconds: 5));
+          .timeout(const Duration(seconds: 2));
 
       return response.statusCode >= 200 && response.statusCode < 500;
     } catch (_) {
@@ -106,13 +105,8 @@ class ConnectivityService {
   }
 
   Future<String> _resolveServerUrl() async {
-    if (_cachedServerUrl != null && _cachedServerUrl!.isNotEmpty) {
-      return _cachedServerUrl!;
-    }
-
     final config = await getServerConfig();
-    _cachedServerUrl = config.url.trim();
-    return _cachedServerUrl!;
+    return config.url.trim();
   }
 
   Uri? _buildPingUri(String serverUrl) {
