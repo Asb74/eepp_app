@@ -9,6 +9,8 @@ import 'otros.dart';
 import 'causas_destrio.dart';
 import 'indice_madurez.dart';
 import 'package:harvestsync/widgets/boton_informe_flotante.dart';
+import 'package:harvestsync/services/connectivity_service.dart';
+import 'package:harvestsync/services/offline_write_service.dart';
 
 class DetalleMuestraPage extends StatefulWidget {
   final String idMuestra;
@@ -123,16 +125,32 @@ class _DetalleMuestraPageState extends State<DetalleMuestraPage> {
   void _guardarDatos() async {
     final uid = FirebaseAuth.instance.currentUser?.uid ?? 'desconocido';
     final docRef = FirebaseFirestore.instance.collection('Muestras').doc(widget.idMuestra);
-
-    await docRef.update({
+    final data = {
       'Albaran': _albaranController.text,
       'Tipo': _tipoSeleccionado,
       'Usuario': uid,
       'Nombre': widget.nombre,
-    });
+    };
+    final canUseServer = ConnectivityService.instance.canReachServer;
+
+    if (canUseServer) {
+      await docRef.update(data);
+    } else {
+      await OfflineWriteService.guardarLocalmente(
+        collection: 'Muestras',
+        documentId: widget.idMuestra,
+        data: data,
+      );
+    }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Datos guardados correctamente')),
+      SnackBar(
+        content: Text(
+          canUseServer
+              ? 'Datos guardados correctamente'
+              : '💾 Datos guardados localmente (sin conexión)',
+        ),
+      ),
     );
   }
 

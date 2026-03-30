@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:harvestsync/services/connectivity_service.dart';
+import 'package:harvestsync/services/offline_write_service.dart';
 import 'detalle_muestra_page.dart';
 
 class NuevaMuestraPage extends StatefulWidget {
@@ -60,16 +62,33 @@ class _NuevaMuestraPageState extends State<NuevaMuestraPage> {
     final usuario = FirebaseAuth.instance.currentUser;
     final uid = usuario?.uid ?? 'desconocido';
 
-    await nuevoDoc.set({
+    final data = {
       'IdMuestra': nuevoDoc.id,
       'FechaHora': Timestamp.fromDate(now),
       'Boleta': boleta,
       'Usuario': uid,
       'CULTIVO': cultivo,
-    });
+    };
+    final canUseServer = ConnectivityService.instance.canReachServer;
+
+    if (canUseServer) {
+      await nuevoDoc.set(data);
+    } else {
+      await OfflineWriteService.guardarLocalmente(
+        collection: 'Muestras',
+        documentId: nuevoDoc.id,
+        data: data,
+      );
+    }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('✅ Muestra creada con Boleta $boleta')),
+      SnackBar(
+        content: Text(
+          canUseServer
+              ? '✅ Muestra creada con Boleta $boleta'
+              : '💾 Muestra guardada localmente (sin conexión)',
+        ),
+      ),
     );
 
     Navigator.push(

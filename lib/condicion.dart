@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:harvestsync/widgets/boton_foto_flotante.dart';
 import 'package:harvestsync/widgets/boton_informe_flotante.dart';
+import 'package:harvestsync/services/connectivity_service.dart';
+import 'package:harvestsync/services/offline_write_service.dart';
 
 class CondicionPage extends StatefulWidget {
   final String idMuestra;
@@ -79,7 +81,7 @@ class _CondicionPageState extends State<CondicionPage> {
       _guardando = true;
     });
     try {
-      await FirebaseFirestore.instance.collection('Muestras').doc(widget.idMuestra).update({
+      final data = {
         'EstadoMadurez': _estadoMadurez,
         'Semillas': _semillas,
         'Sabor': _sabor,
@@ -87,15 +89,36 @@ class _CondicionPageState extends State<CondicionPage> {
         'Olor': _olor,
         'Pulpa': _pulpa,
         'Textura': _textura,
-      });
+      };
+      final canUseServer = ConnectivityService.instance.canReachServer;
+
+      if (canUseServer) {
+        await FirebaseFirestore.instance
+            .collection('Muestras')
+            .doc(widget.idMuestra)
+            .update(data);
+      } else {
+        await OfflineWriteService.guardarLocalmente(
+          collection: 'Muestras',
+          documentId: widget.idMuestra,
+          data: data,
+        );
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-          content: Text('Datos guardados correctamente.'),
-         ),
+          SnackBar(
+            content: Text(
+              canUseServer
+                  ? 'Datos guardados correctamente.'
+                  : '💾 Datos guardados localmente (sin conexión)',
+            ),
+          ),
         );
       }
     } catch (e) {
+      if (!ConnectivityService.instance.canReachServer) {
+        return;
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error al guardar datos: $e')),

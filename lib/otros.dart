@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:harvestsync/widgets/boton_foto_flotante.dart';
 import 'package:harvestsync/widgets/boton_informe_flotante.dart';
+import 'package:harvestsync/services/connectivity_service.dart';
+import 'package:harvestsync/services/offline_write_service.dart';
 
 class CampoConfigurado {
   final String nombre;
@@ -124,17 +126,35 @@ class _OtrosPageState extends State<OtrosPage> {
         datosAGuardar[campo.nombre] = valores[campo.nombre];
       }
 
-      await FirebaseFirestore.instance
-          .collection('Muestras')
-          .doc(widget.idMuestra)
-          .update(datosAGuardar);
+      final canUseServer = ConnectivityService.instance.canReachServer;
+      if (canUseServer) {
+        await FirebaseFirestore.instance
+            .collection('Muestras')
+            .doc(widget.idMuestra)
+            .update(datosAGuardar);
+      } else {
+        await OfflineWriteService.guardarLocalmente(
+          collection: 'Muestras',
+          documentId: widget.idMuestra,
+          data: datosAGuardar,
+        );
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Datos guardados correctamente')),
+          SnackBar(
+            content: Text(
+              canUseServer
+                  ? 'Datos guardados correctamente'
+                  : '💾 Datos guardados localmente (sin conexión)',
+            ),
+          ),
         );
       }
     } catch (e) {
+      if (!ConnectivityService.instance.canReachServer) {
+        return;
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error al guardar datos: $e')),

@@ -7,6 +7,8 @@ import 'package:harvestsync/usuario_actual.dart' as usuario;
 import 'package:harvestsync/util/conexion_util.dart';
 import 'package:harvestsync/services/foto_local_service.dart';
 import 'package:harvestsync/services/server_config_service.dart';
+import 'package:harvestsync/services/connectivity_service.dart';
+import 'package:harvestsync/services/offline_write_service.dart';
 
 class BotonFotoFlotante extends StatelessWidget {
   final String? idMuestra;
@@ -105,13 +107,22 @@ class BotonFotoFlotante extends StatelessWidget {
       final response = await request.send();
 
       if (response.statusCode == 200) {
-        await FirebaseFirestore.instance.collection('Fotos').add({
+        final fotoData = {
           'ruta_local': nombre,
           'idMuestra': idMuestra!,
           'pantalla': tituloPantalla,
           'boleta': boleta,
           'timestamp': Timestamp.now(),
-        });
+        };
+        final canUseServer = ConnectivityService.instance.canReachServer;
+        if (canUseServer) {
+          await FirebaseFirestore.instance.collection('Fotos').add(fotoData);
+        } else {
+          await OfflineWriteService.guardarLocalmente(
+            collection: 'Fotos',
+            data: fotoData,
+          );
+        }
 
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -122,6 +133,9 @@ class BotonFotoFlotante extends StatelessWidget {
         throw 'Error al subir la foto (código ${response.statusCode})';
       }
     } catch (e) {
+      if (!ConnectivityService.instance.canReachServer) {
+        return;
+      }
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('❌ Error: $e')),
