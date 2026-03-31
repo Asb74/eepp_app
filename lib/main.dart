@@ -18,7 +18,7 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  await ConnectivityService.instance.startMonitoring();
+  //await ConnectivityService.instance.startMonitoring();
   await OfflineSyncService.instance.init();
   runApp(const MyApp());
 }
