@@ -1,3 +1,7 @@
+import 'dart:async';
+import 'dart:developer' as developer;
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -14,13 +18,49 @@ import 'widgets/app_bar_actions.dart';
 import 'widgets/connection_status_icon.dart';
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  //await ConnectivityService.instance.startMonitoring();
-  await OfflineSyncService.instance.init();
-  runApp(const MyApp());
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+
+    FlutterError.onError = (FlutterErrorDetails details) {
+      FlutterError.dumpErrorToConsole(details);
+      developer.log(
+        'FlutterError: ${details.exception}',
+        stackTrace: details.stack,
+      );
+    };
+
+    PlatformDispatcher.instance.onError = (error, stack) {
+      developer.log('Platform error: $error', stackTrace: stack);
+      return true;
+    };
+
+    developer.log('🚀 App iniciando');
+
+    developer.log('Inicializando Firebase...');
+    try {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+      developer.log('✅ Firebase OK');
+    } catch (e, stack) {
+      developer.log('❌ Firebase ERROR: $e', stackTrace: stack);
+    }
+
+    developer.log('Inicializando monitoreo de conectividad...');
+    try {
+      await ConnectivityService.instance.startMonitoring();
+      developer.log('✅ Connectivity OK');
+    } catch (e, stack) {
+      developer.log('❌ Connectivity ERROR: $e', stackTrace: stack);
+    }
+
+    await OfflineSyncService.instance.init();
+
+    developer.log('Ejecutando runApp()...');
+    runApp(const MyApp());
+  }, (error, stack) {
+    developer.log('🔥 ERROR GLOBAL: $error', stackTrace: stack);
+  });
 }
 
 class MyApp extends StatelessWidget {
