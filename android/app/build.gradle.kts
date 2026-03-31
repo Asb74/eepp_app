@@ -34,7 +34,7 @@ android {
         applicationId = "com.sansebas.harvestsync"
         minSdk = 23
         targetSdk = 35
-        versionCode = 5
+        versionCode = 6
         versionName = "1.0.0"
     }
 
