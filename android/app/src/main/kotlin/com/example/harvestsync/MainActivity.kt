@@ -1,4 +1,4 @@
-package com.example.harvestsync
+package com.sansebas.harvestsync
 
 import io.flutter.embedding.android.FlutterActivity
 
